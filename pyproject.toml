@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transcription-subtitle-generator"
+version = "1.1.0"
+description = "Transcribe audio/video and generate SRT, VTT, TXT and word timestamps with faster-whisper, with optional FFmpeg subtitle burning."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Your Name"}]
+dependencies = [
+  "faster-whisper>=1.2.1,<2"
+]
+
+[project.scripts]
+transcribe-subtitles = "transcription_subtitle_generator.cli:main"
+video-subtitles = "transcription_subtitle_generator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
