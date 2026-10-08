@@ -11,7 +11,9 @@ A local Python command-line tool that transcribes audio or video and generates r
 - Silero VAD to reduce transcription of silence
 - Intelligent subtitle cue splitting based on line length, cue duration, silence, and sentence endings
 - Keeps subtitle cues to 1 or 2 readable lines
-- Optional FFmpeg/libass subtitle burn-in to MP4
+- Optional FFmpeg/libass subtitle burn-in to MP4, with automatic font scaling for vertical (9:16) and square video
+- Sentence-aware splitting that understands the Devanagari/Bengali danda (`।`) and other non-Latin sentence endings
+- Progress display during transcription, and early, clear errors (no speech, missing FFmpeg, audio-only input with `--burn`)
 - CPU and NVIDIA CUDA modes
 - Supports `hotwords` for names, Scripture terminology, organization names, and specialist vocabulary
 - Primary CLI command: `transcribe-subtitles`
@@ -22,7 +24,7 @@ The tool uses faster-whisper word-level timestamps to build subtitle cues instea
 ## Requirements
 
 - Python 3.10+
-- FFmpeg in `PATH` for media decoding and subtitle burning
+- FFmpeg and ffprobe in `PATH` **only for `--burn`** (transcription decodes media through the PyAV library installed with faster-whisper)
 - For burn-in, FFmpeg must include the `subtitles` filter and libass
 - NVIDIA CUDA libraries are required only when using `--device cuda`
 
@@ -153,6 +155,24 @@ transcribe-subtitles "malayalam.mp4" --language ml --burn --font "Anek Malayalam
 
 The selected font must be installed on the computer and visible to FFmpeg/libass.
 
+## Vertical video (Reels, Shorts, Status)
+
+libass sizes subtitle text against the video height, which makes text far too large on portrait video. Burn-in therefore scales the font automatically for portrait and square frames, and lifts the text off the bottom edge so platform interface elements are less likely to cover it. Rotation metadata (common on phone clips) is taken into account.
+
+```bash
+transcribe-subtitles "reel.mp4" --burn
+```
+
+Fine-tune with `--font-size` (specified as for a 16:9 frame) and `--margin-v`, or disable the automatic scaling with `--no-auto-scale`.
+
+## Transcript layout
+
+By default the `.txt` file has one subtitle cue per line. For a readable transcript with one sentence per line, independent of subtitle breaks:
+
+```bash
+transcribe-subtitles "message.mp4" --txt-layout sentences
+```
+
 ## Custom output directory
 
 ```bash
@@ -214,7 +234,7 @@ video-subtitles "video.mp4"
 
 ## Notes on subtitle burning
 
-The project uses FFmpeg's `subtitles` video filter and encodes the output video with H.264 while copying the original audio stream. If the source audio codec cannot be copied into MP4, change `-c:a copy` in `core.py` to an AAC setting such as `-c:a aac -b:a 192k`.
+The project uses FFmpeg's `subtitles` video filter and encodes the output video as H.264 (`yuv420p`, `+faststart`, suitable for web and social upload). The source audio is copied when it is MP4-compatible (AAC, MP3, Opus, FLAC and similar) and otherwise re-encoded to AAC 192 kb/s automatically.
 
 ## License
 

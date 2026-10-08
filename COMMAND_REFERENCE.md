@@ -339,6 +339,24 @@ Example:
 transcribe-subtitles "video.mp4" --max-gap 0.7
 ```
 
+## Transcript layout
+
+### `--txt-layout {cues,sentences}`
+
+Layout of the plain-text transcript.
+
+Default:
+
+```text
+cues
+```
+
+`cues` writes one subtitle cue per line. `sentences` writes one sentence per line, independent of subtitle breaks.
+
+```bash
+transcribe-subtitles "video.mp4" --txt-layout sentences
+```
+
 ## Word-level timestamps
 
 ### `--no-words-json`
@@ -382,7 +400,7 @@ video.subtitled.mp4
 
 ### `--burn-output BURN_OUTPUT`
 
-Specify the output filename for the burned video.
+Specify the output filename for the burned video. It must differ from the input file.
 
 ```bash
 transcribe-subtitles "video.mp4" --burn --burn-output "final-video.mp4"
@@ -408,7 +426,7 @@ The font must already be installed on the system and visible to FFmpeg/libass.
 
 ### `--font-size FONT_SIZE`
 
-Subtitle font size used during burn-in.
+Subtitle font size used during burn-in, specified as for a 16:9 frame. On portrait and square video it is scaled down automatically (see `--no-auto-scale`).
 
 Default:
 
@@ -421,6 +439,14 @@ Example:
 ```bash
 transcribe-subtitles "video.mp4" --burn --font-size 28
 ```
+
+### `--margin-v MARGIN_V`
+
+Bottom margin of burned subtitles. Default: automatic (the library default for landscape video, a larger margin for vertical video).
+
+### `--no-auto-scale`
+
+Burn-in scales the font size for portrait and square video, because libass sizes text against the video height. Use this flag to apply `--font-size` exactly as given.
 
 Font and font size together:
 
@@ -566,23 +592,17 @@ Example:
 transcribe-subtitles "video.mp4" --language ml --burn --font "Anek Malayalam" --font-size 28
 ```
 
-### Audio works but burn-in fails
+### `--burn` stops immediately with "no video stream"
 
-Transcription can accept audio files, but `--burn` is intended for video input because it creates a subtitled video output.
+`--burn` creates a subtitled video, so it needs a video input. The check runs before transcription starts, so no time is lost. Transcribe audio files without `--burn`.
 
-### MP4 audio-copy error during burn-in
+### No speech detected
 
-The current burn command copies the source audio with:
+When no speech is found the tool writes no files and exits with status 3. If the audio does contain speech, try `--no-vad` (quiet speech can be removed by VAD) or a larger model.
 
-```text
--c:a copy
-```
+### Audio in burned video
 
-Some source audio codecs cannot be copied directly into an MP4 container. In that case, edit `core.py` and replace the audio-copy arguments with an AAC encode such as:
-
-```text
--c:a aac -b:a 192k
-```
+Audio that MP4 can hold (AAC, MP3, Opus, FLAC and similar) is copied unchanged. Anything else is re-encoded to AAC 192 kb/s automatically.
 
 ### CUDA errors
 
@@ -591,6 +611,15 @@ Confirm that your NVIDIA driver, CUDA-related runtime libraries, CTranslate2, an
 ```bash
 transcribe-subtitles "video.mp4" --device cpu --compute-type int8
 ```
+
+## Exit status
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Subtitle files created, but burn-in failed |
+| `2` | Invalid input (file not found, missing FFmpeg for `--burn`, audio-only input with `--burn`) |
+| `3` | No speech detected; no files written |
 
 ## Current defaults summary
 
@@ -609,4 +638,5 @@ transcribe-subtitles "video.mp4" --device cpu --compute-type int8
 | Max silence gap | `0.8` seconds |
 | Word JSON | Enabled |
 | Burn subtitles | Disabled |
-| Burn font size | `24` |
+| Burn font size | `24` (as for 16:9; auto-scaled for vertical video) |
+| Transcript layout | `cues` |
